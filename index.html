@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NKZ CodeGuardian</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0A0A0F;
+    --surface:   #111118;
+    --border:    #1E1E2E;
+    --muted:     #2A2A3E;
+    --text:      #E2E0F0;
+    --subtle:    #6B6B8A;
+    --violet:    #7C3AED;
+    --violet-l:  #9B5CF6;
+    --cyan:      #06B6D4;
+    --red:       #EF4444;
+    --orange:    #F97316;
+    --yellow:    #F59E0B;
+    --green:     #10B981;
+    --red-bg:    rgba(239,68,68,.08);
+    --orange-bg: rgba(249,115,22,.08);
+    --yellow-bg: rgba(245,158,11,.08);
+    --blue-bg:   rgba(6,182,212,.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, var(--violet), var(--cyan));
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .logo-text { color: var(--text); }
+  .logo-text span { color: var(--violet-l); }
+
+  .score-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--subtle);
+  }
+
+  .score-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--green);
+    transition: color .3s;
+  }
+
+  /* ── LAYOUT ── */
+  .shell {
+    display: flex;
+    flex: 1;
+    height: calc(100vh - 56px);
+  }
+
+  /* ── SIDEBAR ── */
+  aside {
+    width: 280px;
+    min-width: 280px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .aside-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .aside-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    color: var(--subtle);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* ── UPLOAD ZONE ── */
+  .upload-zone {
+    border: 1.5px dashed var(--muted);
+    border-radius: 8px;
+    padding: 20px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--violet);
+    background: rgba(124,58,237,.06);
+  }
+
+  .upload-zone input { display: none; }
+
+  .upload-icon { font-size: 24px; margin-bottom: 6px; }
+
+  .upload-text {
+    font-size: 12px;
+    color: var(--subtle);
+    line-height: 1.5;
+  }
+
+  .upload-text strong {
+    display: block;
+    color: var(--text);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+
+  /* ── FILTERS ── */
+  .filter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .filter-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background .15s;
+    user-select: none;
+  }
+
+  .filter-item:hover { background: var(--muted); }
+  .filter-item.active { background: rgba(124,58,237,.15); }
+
+  .filter-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot-red    { background: var(--red); }
+  .dot-orange { background: var(--orange); }
+  .dot-yellow { background: var(--yellow); }
+  .dot-blue   { background: var(--cyan); }
+
+  .filter-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--muted);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--subtle);
+  }
+
+  /* ── FILES LIST ── */
+  .files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background .15s;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--subtle);
+  }
+
+  .file-item:hover { background: var(--muted); color: var(--text); }
+  .file-item.active { background: rgba(124,58,237,.12); color: var(--violet-l); }
+
+  .file-ext {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: var(--muted);
+  }
+
+  .ext-py  { color: #3B82F6; }
+  .ext-js  { color: #F59E0B; }
+  .ext-ts  { color: var(--cyan); }
+
+  /* ── MAIN ── */
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .stat-cell {
+    flex: 1;
+    padding: 14px 20px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat-cell:last-child { border-right: none; }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    color: var(--subtle);
+    text-transform: uppercase;
+  }
+
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .stat-critical { color: var(--red); }
+  .stat-high     { color: var(--orange); }
+  .stat-medium   { color: var(--yellow); }
+  .stat-low      { color: var(--cyan); }
+
+  /* ── ISSUES LIST ── */
+  .issues-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 12px;
+    color: var(--subtle);
+  }
+
+  .empty-state .em-icon { font-size: 48px; opacity: .4; }
+
+  .empty-state p {
+    font-size: 14px;
+    text-align: center;
+    line-height: 1.6;
+    max-width: 320px;
+  }
+
+  .empty-state strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 16px; }
+
+  /* ── ISSUE CARD ── */
+  .issue-group-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--subtle);
+    margin: 16px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .issue-group-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .issue-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: border-color .15s;
+  }
+
+  .issue-card:hover { border-color: var(--muted); }
+
+  .issue-card.sev-CRITICAL { border-left: 3px solid var(--red); }
+  .issue-card.sev-HIGH     { border-left: 3px solid var(--orange); }
+  .issue-card.sev-MEDIUM   { border-left: 3px solid var(--yellow); }
+  .issue-card.sev-LOW      { border-left: 3px solid var(--cyan); }
+
+  .issue-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .issue-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .sev-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .pill-CRITICAL { background: var(--red-bg);    color: var(--red);    }
+  .pill-HIGH     { background: var(--orange-bg); color: var(--orange); }
+  .pill-MEDIUM   { background: var(--yellow-bg); color: var(--yellow); }
+  .pill-LOW      { background: var(--blue-bg);   color: var(--cyan);   }
+
+  .issue-title {
+    font-weight: 600;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .issue-location {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--subtle);
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
+
+  .issue-chevron {
+    color: var(--subtle);
+    font-size: 11px;
+    transition: transform .2s;
+    margin-left: 8px;
+    flex-shrink: 0;
+  }
+
+  .issue-card.open .issue-chevron { transform: rotate(180deg); }
+
+  .issue-body {
+    display: none;
+    padding: 0 14px 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .issue-card.open .issue-body { display: block; }
+
+  .snippet-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin: 10px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #A78BFA;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .body-row {
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 6px 10px;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+
+  .body-key {
+    color: var(--subtle);
+    font-weight: 600;
+    font-size: 11px;
+    padding-top: 1px;
+  }
+
+  .body-val { color: var(--text); line-height: 1.5; }
+
+  .fix-block {
+    background: rgba(16,185,129,.06);
+    border: 1px solid rgba(16,185,129,.2);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: #6EE7B7;
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+
+  .fix-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    color: var(--green);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ── RULE TAG ── */
+  .rule-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--subtle);
+    background: var(--muted);
+    border-radius: 4px;
+    padding: 1px 6px;
+    flex-shrink: 0;
+  }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .search-input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    outline: none;
+    transition: border-color .2s;
+  }
+
+  .search-input:focus { border-color: var(--violet); }
+  .search-input::placeholder { color: var(--subtle); }
+
+  .btn {
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+  }
+
+  .btn:hover { background: rgba(124,58,237,.2); border-color: var(--violet); }
+
+  .btn-primary {
+    background: var(--violet);
+    border-color: var(--violet);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: var(--violet-l); border-color: var(--violet-l); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    <div class="logo-text">NKZ <span>CodeGuardian</span></div>
+  </div>
+  <div class="score-badge">
+    <span>Security Score</span>
+    <span class="score-value" id="scoreValue">—</span>
+    <span style="color:var(--subtle)">/100</span>
+  </div>
+</header>
+
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="aside-section">
+      <div class="aside-label">Carregar Relatório</div>
+      <label class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".json">
+        <div class="upload-icon">📂</div>
+        <div class="upload-text">
+          <strong>Solte o JSON aqui</strong>
+          ou clique para selecionar
+          <br><br>
+          Gere com:<br>
+          <code style="color:var(--cyan);font-size:10px">python analyzer.py ./projeto --json > report.json</code>
+        </div>
+      </label>
+    </div>
+
+    <div class="aside-section">
+      <div class="aside-label">Severidade</div>
+      <div class="filter-list">
+        <div class="filter-item active" data-filter="ALL">
+          <div class="filter-left">
+            <div class="dot" style="background:var(--violet)"></div>
+            Todos
+          </div>
+          <span class="filter-count" id="countAll">0</span>
+        </div>
+        <div class="filter-item" data-filter="CRITICAL">
+          <div class="filter-left">
+            <div class="dot dot-red"></div>
+            Critical
+          </div>
+          <span class="filter-count" id="countCRITICAL">0</span>
+        </div>
+        <div class="filter-item" data-filter="HIGH">
+          <div class="filter-left">
+            <div class="dot dot-orange"></div>
+            High
+          </div>
+          <span class="filter-count" id="countHIGH">0</span>
+        </div>
+        <div class="filter-item" data-filter="MEDIUM">
+          <div class="filter-left">
+            <div class="dot dot-yellow"></div>
+            Medium
+          </div>
+          <span class="filter-count" id="countMEDIUM">0</span>
+        </div>
+        <div class="filter-item" data-filter="LOW">
+          <div class="filter-left">
+            <div class="dot dot-blue"></div>
+            Low
+          </div>
+          <span class="filter-count" id="countLOW">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="aside-section" style="flex:1; overflow-y:auto;">
+      <div class="aside-label">Arquivos</div>
+      <div class="files-list" id="filesList">
+        <div style="font-size:11px;color:var(--subtle);padding:4px 8px;">Nenhum relatório carregado</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+    <!-- STATS BAR -->
+    <div class="stats-bar">
+      <div class="stat-cell">
+        <span class="stat-label">Arquivos</span>
+        <span class="stat-value" id="statFiles" style="color:var(--text)">—</span>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-label">Critical</span>
+        <span class="stat-value stat-critical" id="statCritical">—</span>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-label">High</span>
+        <span class="stat-value stat-high" id="statHigh">—</span>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-label">Medium</span>
+        <span class="stat-value stat-medium" id="statMedium">—</span>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-label">Low</span>
+        <span class="stat-value stat-low" id="statLow">—</span>
+      </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <input class="search-input" id="searchInput" type="text" placeholder="Filtrar por título, arquivo, rule_id...">
+      <button class="btn" id="collapseAll">Fechar tudo</button>
+      <button class="btn btn-primary" id="exportBtn">⬇ Exportar</button>
+    </div>
+
+    <!-- ISSUES -->
+    <div class="issues-area" id="issuesArea">
+      <div class="empty-state" id="emptyState">
+        <div class="em-icon">🛡️</div>
+        <p>
+          <strong>NKZ CodeGuardian</strong>
+          Gere um relatório com o analyzer.py e arraste o JSON aqui para visualizar os resultados.
+        </p>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+let reportData = null;
+let activeFilter = 'ALL';
+let activeFile   = null;
+let searchQuery  = '';
+
+// ── DRAG & DROP ────────────────────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const fileInput  = document.getElementById('fileInput');
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', ()  => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+});
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) loadFile(fileInput.files[0]);
+});
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      reportData = JSON.parse(e.target.result);
+      activeFile = null;
+      renderAll();
+    } catch (err) {
+      alert('JSON inválido: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function renderAll() {
+  if (!reportData) return;
+
+  const meta   = reportData.meta;
+  const issues = reportData.issues || [];
+  const counts = meta.counts || {};
+
+  // Header score
+  const scoreEl = document.getElementById('scoreValue');
+  scoreEl.textContent = meta.security_score ?? '—';
+  const s = meta.security_score;
+  scoreEl.style.color = s >= 80 ? 'var(--green)' : s >= 50 ? 'var(--yellow)' : 'var(--red)';
+
+  // Stats bar
+  document.getElementById('statFiles').textContent   = meta.files_scanned ?? 0;
+  document.getElementById('statCritical').textContent = counts.CRITICAL ?? 0;
+  document.getElementById('statHigh').textContent     = counts.HIGH ?? 0;
+  document.getElementById('statMedium').textContent   = counts.MEDIUM ?? 0;
+  document.getElementById('statLow').textContent      = counts.LOW ?? 0;
+
+  // Filter counts
+  document.getElementById('countAll').textContent      = issues.length;
+  document.getElementById('countCRITICAL').textContent = issues.filter(i => i.severity === 'CRITICAL').length;
+  document.getElementById('countHIGH').textContent     = issues.filter(i => i.severity === 'HIGH').length;
+  document.getElementById('countMEDIUM').textContent   = issues.filter(i => i.severity === 'MEDIUM').length;
+  document.getElementById('countLOW').textContent      = issues.filter(i => i.severity === 'LOW').length;
+
+  // Files list
+  const filesList = document.getElementById('filesList');
+  const files = [...new Set(issues.map(i => i.file))];
+  filesList.innerHTML = files.length ? files.map(f => {
+    const ext = f.split('.').pop().toLowerCase();
+    const extClass = ext === 'py' ? 'ext-py' : ext === 'ts' || ext === 'tsx' ? 'ext-ts' : 'ext-js';
+    const count = issues.filter(i => i.file === f).length;
+    return `<div class="file-item${activeFile === f ? ' active' : ''}" data-file="${f}">
+      <span class="file-ext ${extClass}">${ext}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f}</span>
+      <span style="color:var(--subtle);flex-shrink:0">${count}</span>
+    </div>`;
+  }).join('') : '<div style="font-size:11px;color:var(--subtle);padding:4px 8px;">Sem issues</div>';
+
+  filesList.querySelectorAll('.file-item').forEach(el => {
+    el.addEventListener('click', () => {
+      activeFile = el.dataset.file === activeFile ? null : el.dataset.file;
+      renderAll();
+    });
+  });
+
+  renderIssues(issues);
+}
+
+function renderIssues(allIssues) {
+  const area = document.getElementById('issuesArea');
+  const empty = document.getElementById('emptyState');
+
+  let filtered = allIssues;
+
+  if (activeFilter !== 'ALL') {
+    filtered = filtered.filter(i => i.severity === activeFilter);
+  }
+  if (activeFile) {
+    filtered = filtered.filter(i => i.file === activeFile);
+  }
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    filtered = filtered.filter(i =>
+      i.title.toLowerCase().includes(q) ||
+      i.rule_id.toLowerCase().includes(q) ||
+      (i.file || '').toLowerCase().includes(q) ||
+      (i.description || '').toLowerCase().includes(q)
+    );
+  }
+
+  if (!reportData) {
+    area.innerHTML = '';
+    empty.style.display = 'flex';
+    area.appendChild(empty);
+    return;
+  }
+
+  const ORDER = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
+  const groups = {};
+  for (const sev of ORDER) groups[sev] = [];
+  for (const issue of filtered) {
+    if (groups[issue.severity]) groups[issue.severity].push(issue);
+  }
+
+  const SEV_LABELS = {
+    CRITICAL: '🔴 Critical',
+    HIGH:     '🟠 High',
+    MEDIUM:   '🟡 Medium',
+    LOW:      '🔵 Low',
+  };
+
+  let html = '';
+  let total = 0;
+
+  for (const sev of ORDER) {
+    const items = groups[sev];
+    if (!items.length) continue;
+    total += items.length;
+
+    html += `<div class="issue-group-label">${SEV_LABELS[sev]} — ${items.length} issue${items.length !== 1 ? 's' : ''}</div>`;
+
+    for (const issue of items) {
+      const snip = issue.snippet ? `<div class="snippet-block">${escHtml(issue.snippet.trim())}</div>` : '';
+      html += `
+        <div class="issue-card sev-${issue.severity}" data-id="${issue.rule_id}_${issue.line}_${issue.file}">
+          <div class="issue-header">
+            <div class="issue-left">
+              <span class="sev-pill pill-${issue.severity}">${issue.severity}</span>
+              <span class="rule-tag">${issue.rule_id}</span>
+              <span class="issue-title">${escHtml(issue.title)}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+              <span class="issue-location">${escHtml(issue.file)}:${issue.line ?? '?'}</span>
+              <span class="issue-chevron">▼</span>
+            </div>
+          </div>
+          <div class="issue-body">
+            ${snip}
+            <div class="body-row">
+              <span class="body-key">Arquivo</span>
+              <span class="body-val" style="font-family:'JetBrains Mono',monospace;font-size:11px">${escHtml(issue.file)}:${issue.line ?? '?'}</span>
+              <span class="body-key">Problema</span>
+              <span class="body-val">${escHtml(issue.description)}</span>
+            </div>
+            <div class="fix-block">
+              <div class="fix-label">✓ Sugestão de Fix</div>
+              ${escHtml(issue.suggestion)}
+            </div>
+          </div>
+        </div>`;
+    }
+  }
+
+  if (!total) {
+    html = `<div class="empty-state" style="height:60vh">
+      <div class="em-icon">✅</div>
+      <p><strong>Nenhum issue encontrado</strong>Sem resultados para os filtros aplicados.</p>
+    </div>`;
+  }
+
+  area.innerHTML = html;
+
+  // Toggle cards
+  area.querySelectorAll('.issue-header').forEach(header => {
+    header.addEventListener('click', () => {
+      header.closest('.issue-card').classList.toggle('open');
+    });
+  });
+}
+
+function escHtml(str) {
+  return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── FILTER PILLS ───────────────────────────────────────────────────────────
+document.querySelectorAll('.filter-item').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.filter-item').forEach(f => f.classList.remove('active'));
+    el.classList.add('active');
+    activeFilter = el.dataset.filter;
+    if (reportData) renderIssues(reportData.issues);
+  });
+});
+
+// ── SEARCH ─────────────────────────────────────────────────────────────────
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  if (reportData) renderIssues(reportData.issues);
+});
+
+// ── COLLAPSE ALL ───────────────────────────────────────────────────────────
+document.getElementById('collapseAll').addEventListener('click', () => {
+  document.querySelectorAll('.issue-card.open').forEach(c => c.classList.remove('open'));
+});
+
+// ── EXPORT ─────────────────────────────────────────────────────────────────
+document.getElementById('exportBtn').addEventListener('click', () => {
+  if (!reportData) return;
+  const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `codeguardian_${reportData.meta.project}_${Date.now()}.json`;
+  a.click();
+});
+</script>
+</body>
+</html>

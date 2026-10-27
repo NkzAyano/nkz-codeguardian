@@ -1,0 +1,2 @@
+# NKZ CodeGuardian — zero dependências externas
+# Usa apenas stdlib do Python 3.8+: ast, re, os, json, sys, pathlib, datetime, hashlib
